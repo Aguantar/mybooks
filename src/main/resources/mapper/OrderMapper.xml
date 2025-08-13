@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="mapper.OrderMapper">
+
+    <!-- 주문 생성 -->
+    <insert id="insertOrder" parameterType="model.Order">
+        <selectKey keyProperty="orderId" resultType="long" order="BEFORE">
+            SELECT seq_orders.NEXTVAL FROM dual
+        </selectKey>
+        INSERT INTO orders (order_id, user_id, status, total_amount, address, postcode)
+        VALUES (#{orderId}, #{userId}, #{status}, #{totalAmount}, #{address}, #{postcode})
+    </insert>
+
+    <!-- 주문항목 생성 -->
+    <insert id="insertOrderItem" parameterType="model.OrderItem">
+        <selectKey keyProperty="orderItemId" resultType="long" order="BEFORE">
+            SELECT seq_order_items.NEXTVAL FROM dual
+        </selectKey>
+        INSERT INTO order_items (order_item_id, order_id, book_id, quantity, unit_price)
+        VALUES (#{orderItemId}, #{orderId}, #{bookId}, #{quantity}, #{unitPrice})
+    </insert>
+
+    <!-- 상태 변경(사용자/현재상태 검증) -->
+    <update id="updateOrderStatus">
+        UPDATE orders
+        SET status = #{to}
+        WHERE order_id = #{orderId}
+          AND user_id  = #{userId}
+          AND status   = #{from}
+    </update>
+
+    <!-- 🟢 목록 조회: address, postcode 포함 -->
+    <select id="selectOrdersByUser" resultType="model.Order">
+        SELECT
+            order_id     AS orderId,
+            user_id      AS userId,
+            status,
+            total_amount AS totalAmount,
+            address      AS address,
+            postcode     AS postcode
+        -- created_at   AS createdAt  -- 컬럼 있으면 사용
+        FROM orders
+        WHERE user_id = #{userId}
+        ORDER BY order_id DESC
+    </select>
+
+    <!-- 🟢 상세 조회: address, postcode 포함 -->
+    <select id="selectOrderByIdForUser" resultType="model.Order">
+        SELECT
+            order_id     AS orderId,
+            user_id      AS userId,
+            status,
+            total_amount AS totalAmount,
+            address      AS address,
+            postcode     AS postcode
+        -- created_at   AS createdAt
+        FROM orders
+        WHERE order_id = #{orderId}
+          AND user_id  = #{userId}
+    </select>
+
+    <!-- 항목 + 도서정보 -->
+    <select id="selectOrderItemsWithBook" resultType="model.view.OrderItemView">
+        SELECT
+            oi.order_item_id AS orderItemId,
+            oi.order_id      AS orderId,
+            oi.book_id       AS bookId,
+            oi.quantity      AS quantity,
+            oi.unit_price    AS unitPrice,
+            b.title          AS bookTitle,
+            b.cover_image    AS coverImage
+        FROM order_items oi
+                 JOIN books b ON b.book_id = oi.book_id
+        WHERE oi.order_id = #{orderId}
+        ORDER BY oi.order_item_id
+    </select>
+
+</mapper>

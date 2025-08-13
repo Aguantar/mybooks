@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="mapper.AdminBookMapper">
+
+    <sql id="cols">
+        book_id      AS bookId,
+        title,
+        author,
+        description,
+        price,
+        stock,
+        cover_image  AS coverImage
+    </sql>
+
+    <select id="count" resultType="int">
+        SELECT COUNT(*)
+        FROM books
+        <where>
+            <if test="q != null and q.trim() != ''">
+                (
+                LOWER(title)  LIKE '%' || LOWER(TRIM(#{q})) || '%'
+                OR
+                LOWER(author) LIKE '%' || LOWER(TRIM(#{q})) || '%'
+                )
+            </if>
+        </where>
+    </select>
+
+    <select id="findPage" resultType="model.Book">
+        SELECT <include refid="cols"/>
+        FROM books
+        <where>
+            <if test="q != null and q.trim() != ''">
+                (
+                LOWER(title)  LIKE '%' || LOWER(TRIM(#{q})) || '%'
+                OR
+                LOWER(author) LIKE '%' || LOWER(TRIM(#{q})) || '%'
+                )
+            </if>
+        </where>
+        ORDER BY book_id DESC
+        OFFSET #{offset} ROWS FETCH NEXT #{size} ROWS ONLY
+    </select>
+
+    <select id="findById" resultType="model.Book">
+        SELECT <include refid="cols"/>
+        FROM books
+        WHERE book_id = #{id}
+    </select>
+
+    <insert id="insert" parameterType="model.Book">
+        <selectKey keyProperty="bookId" resultType="long" order="BEFORE">
+            SELECT seq_books.NEXTVAL FROM dual
+        </selectKey>
+        INSERT INTO books (
+        book_id, title, author, description, price, stock, cover_image
+        ) VALUES (
+        #{bookId}, #{title}, #{author}, #{description}, #{price}, #{stock}, #{coverImage}
+        )
+    </insert>
+
+    <update id="update" parameterType="model.Book">
+        UPDATE books
+        SET title       = #{title},
+            author      = #{author},
+            description = #{description},
+            price       = #{price},
+            stock       = #{stock},
+            cover_image = #{coverImage}
+        WHERE book_id   = #{bookId}
+    </update>
+
+    <delete id="delete">
+        DELETE FROM books WHERE book_id = #{id}
+    </delete>
+</mapper>
