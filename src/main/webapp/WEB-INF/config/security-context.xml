@@ -21,11 +21,12 @@
         <security:intercept-url pattern="/admin/**" access="hasRole('ADMIN')"/>
 
         <!-- 장바구니를 로그인 사용자만 보게 하려면 -->
-        <security:intercept-url pattern="/cart/**"    access="hasRole('CUSTOMER')"/>
+
 
         <security:intercept-url pattern="/order/**"   access="hasRole('CUSTOMER')"/>
 
         <!-- 공개 구간 -->
+        <security:intercept-url pattern="/"                access="permitAll"/>
         <security:intercept-url pattern="/login"              access="permitAll"/>
         <security:intercept-url pattern="/loginForm"          access="permitAll"/>
         <security:intercept-url pattern="/register/**"        access="permitAll"/>
@@ -33,6 +34,7 @@
         <security:intercept-url pattern="/api/books"          access="permitAll"/>
         <security:intercept-url pattern="/bookstore/books"    access="permitAll"/>
         <security:intercept-url pattern="/bookstore/book/**"  access="permitAll"/>
+        <security:intercept-url pattern="/cart/**"    access="permitAll"/>
 
         <!-- 🔒 마지막은 반드시 인증 필요로 닫기 (없으면 'public object'로 떨어짐) -->
         <security:intercept-url pattern="/**" access="authenticated"/>
