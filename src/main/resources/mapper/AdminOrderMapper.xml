@@ -3,6 +3,33 @@
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="mapper.AdminOrderMapper">
 
+    <!-- 기존: 관리 화면(카멜)에서 쓰는 컬럼들 -->
+    <sql id="orderCols">
+        o.order_id      AS "orderId",
+        o.user_id       AS "userId",
+        u.login_id      AS "loginId",
+        o.status        AS "status",
+        o.total_amount  AS "totalAmount",
+        o.address       AS "address",
+        o.postcode      AS "postcode",
+        o.courier       AS "courier",
+        o.tracking_no   AS "trackingNo",
+        o.shipped_at    AS "shippedAt",
+        o.delivered_at  AS "deliveredAt"
+    </sql>
+
+    <!-- 추가: 대시보드(맵, 대문자 키)에서 쓰는 컬럼들 -->
+    <sql id="orderColsUpper">
+        o.order_id      AS "ORDER_ID",
+        u.login_id      AS "LOGIN_ID",
+        o.status        AS "STATUS",
+        o.total_amount  AS "TOTAL_AMOUNT",
+        o.courier       AS "COURIER",
+        o.tracking_no   AS "TRACKING_NO",
+        o.shipped_at    AS "SHIPPED_AT",
+        o.delivered_at  AS "DELIVERED_AT"
+    </sql>
+
     <!-- 목록 카운트 -->
     <select id="count" resultType="int">
         SELECT COUNT(*)
@@ -10,80 +37,100 @@
         JOIN users u ON u.user_id = o.user_id
         <where>
             <if test="q != null and q != ''">
-                (
-                TO_CHAR(o.order_id) LIKE '%' || #{q} || '%'
-                OR LOWER(u.login_id) LIKE '%' || LOWER(#{q}) || '%'
-                )
+                ( LOWER(u.login_id) LIKE '%' || LOWER(#{q}) || '%' )
             </if>
             <if test="status != null and status != ''">
-                AND o.status = #{status}
+                AND UPPER(TRIM(o.status)) = UPPER(#{status})
             </if>
         </where>
     </select>
 
-    <!-- 목록 페이지 -->
+    <!-- 페이지 조회(관리 화면용) -->
     <select id="findPage" resultType="map">
         SELECT
-        o.order_id      AS orderId,
-        o.user_id       AS userId,
-        u.login_id      AS loginId,
-        o.status        AS status,
-        o.total_amount  AS totalAmount
+        <include refid="orderCols"/>
         FROM orders o
         JOIN users u ON u.user_id = o.user_id
         <where>
             <if test="q != null and q != ''">
-                (
-                TO_CHAR(o.order_id) LIKE '%' || #{q} || '%'
-                OR LOWER(u.login_id) LIKE '%' || LOWER(#{q}) || '%'
-                )
+                ( LOWER(u.login_id) LIKE '%' || LOWER(#{q}) || '%' )
             </if>
             <if test="status != null and status != ''">
-                AND o.status = #{status}
+                AND UPPER(TRIM(o.status)) = UPPER(#{status})
             </if>
         </where>
         ORDER BY o.order_id DESC
         OFFSET #{offset} ROWS FETCH NEXT #{size} ROWS ONLY
     </select>
 
-    <!-- 상세(주문 요약) -->
+    <!-- 단건(상세) -->
     <select id="findOrder" resultType="map">
         SELECT
-            o.order_id      AS orderId,
-            o.user_id       AS userId,
-            u.login_id      AS loginId,
-            o.status        AS status,
-            o.total_amount  AS totalAmount,
-            o.address       AS address,
-            o.postcode      AS postcode
+        <include refid="orderCols"/>
         FROM orders o
-                 JOIN users u ON u.user_id = o.user_id
+        JOIN users u ON u.user_id = o.user_id
         WHERE o.order_id = #{orderId}
     </select>
 
-    <!-- 상세(품목 목록 + 책 정보) -->
+    <!-- 품목 -->
     <select id="findItems" resultType="model.view.OrderItemView">
         SELECT
-            oi.order_item_id AS orderItemId,
-            oi.order_id      AS orderId,
-            oi.book_id       AS bookId,
-            oi.quantity      AS quantity,
-            oi.unit_price    AS unitPrice,
-            b.title          AS bookTitle,
-            b.cover_image    AS coverImage
+            oi.order_item_id AS "orderItemId",
+            oi.order_id      AS "orderId",
+            oi.book_id       AS "bookId",
+            oi.quantity      AS "quantity",
+            oi.unit_price    AS "unitPrice",
+            b.title          AS "bookTitle",
+            b.cover_image    AS "coverImage"
         FROM order_items oi
                  JOIN books b ON b.book_id = oi.book_id
         WHERE oi.order_id = #{orderId}
         ORDER BY oi.order_item_id
     </select>
 
-    <!-- 상태 변경(현재상태 검증 옵션) -->
-    <update id="updateStatus">
+    <!-- 상태 변경 -->
+    <update id="adminUpdateStatus">
         UPDATE orders
-        SET status = #{to}
+        <set>
+            status = #{to}
+            <if test="to == 'SHIPPED'">
+                , courier     = #{courier}
+                , tracking_no = #{trackingNo}
+                , shipped_at  = SYSDATE
+            </if>
+            <if test="to == 'DELIVERED'">
+                , delivered_at = SYSDATE
+            </if>
+        </set>
         WHERE order_id = #{orderId}
         <if test="from != null and from != ''">
             AND status = #{from}
         </if>
     </update>
+
+    <!-- ✅ 대시보드: 누적 매출 (PAID/SHIPPED/DELIVERED 합) -->
+    <select id="sumRevenue" resultType="long">
+        SELECT NVL(SUM(o.total_amount), 0)
+        FROM orders o
+        WHERE UPPER(TRIM(o.status)) IN ('PAID','SHIPPED','DELIVERED')
+    </select>
+
+    <!-- ✅ 대시보드: 최근 주문 N건 (대문자 별칭으로 반환) -->
+    <select id="findRecent" resultType="map">
+        SELECT
+        <include refid="orderColsUpper"/>
+        FROM orders o
+        JOIN users u ON u.user_id = o.user_id
+        ORDER BY o.order_id DESC
+        OFFSET 0 ROWS FETCH NEXT #{limit} ROWS ONLY
+    </select>
+    <!-- 상태별 개수 집계 -->
+    <select id="countByStatus" resultType="map">
+        SELECT UPPER(TRIM(status)) AS "status",
+               COUNT(*)            AS "cnt"
+        FROM orders
+        GROUP BY UPPER(TRIM(status))
+    </select>
+
+
 </mapper>

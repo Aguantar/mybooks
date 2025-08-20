@@ -112,7 +112,7 @@
       <c:otherwise>
         <a href="${pageContext.request.contextPath}/cart"   class="text-btn">장바구니</a>
         <sec:authorize access="hasRole('ADMIN')">
-          <a href="${pageContext.request.contextPath}/admin/books" class="text-btn">관리자</a>
+          <a href="${pageContext.request.contextPath}/admin/dashboard" class="text-btn">관리자</a>
         </sec:authorize>
 
         <a href="${pageContext.request.contextPath}/mypage/orders" class="text-btn">주문내역</a>

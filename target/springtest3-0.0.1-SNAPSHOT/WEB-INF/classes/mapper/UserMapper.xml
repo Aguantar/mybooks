@@ -1,9 +1,21 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
-                        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="mapper.UserMapper">
 
-  <!-- username 중복 여부 확인 -->
+  <!-- 공통 매핑 -->
+  <resultMap id="UserMap" type="model.User">
+    <id     property="userId"  column="user_id"/>
+    <result property="loginId" column="login_id"/>
+    <result property="password" column="password"/>
+    <result property="name"    column="name"/>
+    <result property="email"   column="email"/>
+    <result property="role"    column="role"/>
+    <!-- ✅ status 매핑 추가 -->
+    <result property="status"  column="status"/>
+  </resultMap>
+
+  <!-- username(=login_id) 중복 여부 확인 -->
   <select id="existsByUsername" resultType="int" parameterType="string">
     SELECT COUNT(*) FROM users WHERE login_id = #{loginId}
   </select>
@@ -13,25 +25,28 @@
     SELECT COUNT(*) FROM users WHERE email = #{email}
   </select>
 
-  <!-- 새 사용자 삽입 -->
+  <!-- 새 사용자 삽입: status 기본값 ACTIVE 처리 -->
   <insert id="insertUser" parameterType="model.User">
     INSERT INTO users (
-      user_id, login_id, password, name, email, role
+      user_id, login_id, password, name, email, role, status
     ) VALUES (
-      seq_users.NEXTVAL, #{loginId}, #{password}, #{name}, #{email}, #{role}
-    )
+               seq_users.NEXTVAL, #{loginId}, #{password}, #{name}, #{email}, #{role},
+               NVL(#{status}, 'ACTIVE')
+             )
   </insert>
 
-  <!-- 로그인할 때 loginId로 사용자 찾기 -->
-  <select id="findByUsername" resultType="model.User" parameterType="string">
-    SELECT user_id,
-           login_id AS loginId,
-           password,
-           name,
-           email,
-           role
+  <!-- 로그인 시 username으로 조회: 단일 파라미터 이름은 #{username}로 사용 -->
+  <select id="findByUsername" parameterType="string" resultMap="UserMap">
+    SELECT
+      user_id,
+      login_id,
+      password,
+      name,
+      email,
+      role,
+      status
     FROM users
-    WHERE login_id = #{loginId}
+    WHERE login_id = #{username}
   </select>
 
   <!-- (선택) 사용자 권한 조회 -->
@@ -40,10 +55,22 @@
     FROM user_roles
     WHERE user_id = #{userId}
   </select>
-  
-  <select id="findByEmail" parameterType="string" resultType="model.User">
-  SELECT * FROM users WHERE email = #{email}
-</select>
+
+  <!-- 이메일로 조회 -->
+  <select id="findByEmail" parameterType="string" resultMap="UserMap">
+    SELECT
+      user_id,
+      login_id,
+      password,
+      name,
+      email,
+      role,
+      status
+    FROM users
+    WHERE email = #{email}
+  </select>
+
+  <!-- loginId로 user_id 조회 -->
   <select id="selectUserIdByLoginId" parameterType="string" resultType="long">
     SELECT user_id FROM users WHERE login_id = #{loginId}
   </select>

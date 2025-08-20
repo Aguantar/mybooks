@@ -37,6 +37,8 @@
         .badge.pending{background:#fff7ed;color:#b45309;border:1px solid #fed7aa}
         .badge.paid{background:#ecfdf5;color:#047857;border:1px solid #a7f3d0}
         .badge.canceled{background:#fef2f2;color:#b91c1c;border:1px solid #fecaca}
+        .badge.shipped{background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe}
+        .badge.delivered{background:#f0fdf4;color:#166534;border:1px solid #bbf7d0}
 
         table{width:100%;border-collapse:collapse}
         th,td{padding:12px;border-bottom:1px solid var(--bd);vertical-align:middle}
@@ -50,6 +52,10 @@
         .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
         .msg{margin:16px 0;padding:10px 12px;border:1px solid #d1fae5;background:#ecfdf5;border-radius:8px;color:#065f46}
         .msg.err{border-color:#fecaca;background:#fef2f2;color:#991b1b}
+
+        .item-link{color:inherit;text-decoration:none}
+        .item-link:hover{text-decoration:underline}
+        .thumb-link{display:inline-block}
 
         @media (max-width:780px){
             .meta-grid{grid-template-columns:1fr}
@@ -90,12 +96,13 @@
                 <c:choose>
                     <c:when test="${st eq 'PAID'}"><span class="badge paid">결제완료</span></c:when>
                     <c:when test="${st eq 'PENDING'}"><span class="badge pending">결제대기</span></c:when>
-                    <c:when test="${st eq 'CANCELED'}"><span class="badge canceled">취소됨</span></c:when>
+                    <c:when test="${st eq 'SHIPPED'}"><span class="badge shipped">발송됨</span></c:when>
+                    <c:when test="${st eq 'DELIVERED'}"><span class="badge delivered">배송완료</span></c:when>
+                    <c:when test="${st eq 'CANCELLED' or st eq 'CANCELED'}"><span class="badge canceled">취소됨</span></c:when>
                     <c:otherwise><span class="badge"><c:out value="${order.status}"/></span></c:otherwise>
                 </c:choose>
             </div>
             <div class="spacer"></div>
-            <!-- 상태가 PENDING일 때만 취소 버튼 -->
             <c:if test="${st eq 'PENDING'}">
                 <form id="cancelForm"
                       action="${pageContext.request.contextPath}/mypage/orders/${order.orderId}/cancel"
@@ -125,6 +132,36 @@
                     <div class="label">우편번호</div>
                     <div class="val"><c:out value="${order.postcode}"/></div>
                 </div>
+
+                <!-- 배송 정보 -->
+                <div class="meta-item" style="grid-column:1 / -1">
+                    <div class="label">배송 정보</div>
+                    <div class="val">
+                        <c:choose>
+                            <%-- 배송중/완료일 때만 상세 정보 --%>
+                            <c:when test="${st eq 'SHIPPED' or st eq 'DELIVERED'}">
+                                <div>택배사: <c:out value="${order.courier}"/></div>
+                                <div>
+                                    송장번호:
+                                    <c:out value="${order.trackingNo}"/>
+                                </div>
+                                <div>
+                                    발송일:
+                                    <fmt:formatDate value="${order.shippedAt}" pattern="yyyy-MM-dd HH:mm"/>
+                                </div>
+                                <c:if test="${st eq 'DELIVERED'}">
+                                    <div>
+                                        배송완료:
+                                        <fmt:formatDate value="${order.deliveredAt}" pattern="yyyy-MM-dd HH:mm"/>
+                                    </div>
+                                </c:if>
+                            </c:when>
+                            <c:otherwise>
+                                <span class="muted">배송 준비 중</span>
+                            </c:otherwise>
+                        </c:choose>
+                    </div>
+                </div>
             </div>
 
             <!-- 품목 리스트 -->
@@ -148,14 +185,25 @@
                         </c:when>
                         <c:otherwise>
                             <c:forEach var="it" items="${items}">
+                                <%-- 도서 상세 링크 --%>
+                                <c:url var="bookHref" value="/bookstore/book/${it.bookId}"/>
+
                                 <tr>
                                     <td class="hide-sm">
-                                        <img class="thumb" src="<c:out value='${it.coverImage}'/>"
-                                             alt="cover" onerror="this.style.visibility='hidden'"/>
+                                        <a class="thumb-link" href="${bookHref}" title="도서 상세보기">
+                                            <img class="thumb" src="<c:out value='${it.coverImage}'/>"
+                                                 alt="cover" onerror="this.style.visibility='hidden'"/>
+                                        </a>
                                     </td>
                                     <td>
-                                        <div class="title"><c:out value="${it.bookTitle}"/></div>
-                                        <div class="muted">#<c:out value="${it.bookId}"/></div>
+                                        <div class="title">
+                                            <a class="item-link" href="${bookHref}">
+                                                <c:out value="${it.bookTitle}"/>
+                                            </a>
+                                        </div>
+                                        <div class="muted">
+                                            <a class="item-link" href="${bookHref}">#<c:out value="${it.bookId}"/></a>
+                                        </div>
                                     </td>
                                     <td class="right"><c:out value="${it.quantity}"/></td>
                                     <td class="right"><fmt:formatNumber value="${it.unitPrice}" pattern="#,###"/> 원</td>
@@ -164,6 +212,7 @@
                                     </td>
                                 </tr>
                             </c:forEach>
+
                             <tr class="total-row">
                                 <td class="hide-sm"></td>
                                 <td></td>

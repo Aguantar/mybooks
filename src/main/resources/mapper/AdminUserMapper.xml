@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="mapper.AdminUserMapper">
+
+    <!-- 총 개수 -->
+    <select id="count" resultType="int">
+        SELECT COUNT(*)
+        FROM users
+        <where>
+            <if test="q != null and q != ''">
+                LOWER(login_id) LIKE '%' || LOWER(#{q}) || '%'
+            </if>
+            <if test="status != null and status != ''">
+                <if test="q != null and q != ''"> AND </if>
+                UPPER(TRIM(status)) = UPPER(#{status})
+            </if>
+        </where>
+    </select>
+
+    <select id="findPage" resultType="map">
+        SELECT
+        user_id             AS "USER_ID",
+        login_id            AS "LOGIN_ID",
+        name                AS "NAME",
+        email               AS "EMAIL",
+
+        -- 핵심: 둘 다 내려주기
+        UPPER(TRIM(role))   AS "ROLE_TXT",
+        UPPER(TRIM(role))   AS "ROLE",
+
+        UPPER(TRIM(status)) AS "STATUS_TXT",
+        UPPER(TRIM(status)) AS "STATUS"
+        FROM users
+        <where>
+            <if test="q != null and q != ''">
+                LOWER(login_id) LIKE '%' || LOWER(#{q}) || '%'
+            </if>
+            <if test="status != null and status != ''">
+                <if test="q != null and q != ''"> AND </if>
+                UPPER(TRIM(status)) = UPPER(#{status})
+            </if>
+        </where>
+        ORDER BY user_id DESC
+        OFFSET #{offset} ROWS FETCH NEXT #{size} ROWS ONLY
+    </select>
+
+    <update id="updateRoleStatus">
+        UPDATE users
+        SET role   = UPPER(TRIM(#{role})),
+            status = UPPER(TRIM(#{status}))
+        WHERE user_id = #{id}
+    </update>
+</mapper>

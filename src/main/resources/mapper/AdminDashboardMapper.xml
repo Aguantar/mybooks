@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="mapper.AdminDashboardMapper">
+
+    <select id="countUsers" resultType="int">
+        SELECT COUNT(*) FROM users
+    </select>
+
+    <select id="countUsersByStatus" parameterType="string" resultType="int">
+        SELECT COUNT(*) FROM users
+        WHERE UPPER(TRIM(status)) = UPPER(#{status})
+    </select>
+
+    <select id="countOrders" resultType="int">
+        SELECT COUNT(*) FROM orders
+    </select>
+
+    <select id="countOrdersByStatus" parameterType="string" resultType="int">
+        SELECT COUNT(*) FROM orders
+        WHERE UPPER(TRIM(status)) = UPPER(#{status})
+    </select>
+
+    <!-- 매출 합계: PAID/SHIPPED/DELIVERED 포함 & 상태 정규화 -->
+    <select id="sumRevenue" resultType="long">
+        SELECT NVL(SUM(total_amount), 0)
+        FROM orders
+        WHERE UPPER(TRIM(status)) IN ('PAID','SHIPPED','DELIVERED')
+    </select>
+
+    <!-- 최근 주문 N건 -->
+    <select id="recentOrders" parameterType="int" resultType="map">
+        SELECT
+        o.order_id      AS "ORDER_ID",
+        u.login_id      AS "LOGIN_ID",
+        o.status        AS "STATUS",
+        o.total_amount  AS "TOTAL_AMOUNT",
+        o.courier       AS "COURIER",
+        o.tracking_no   AS "TRACKING_NO",
+        o.shipped_at    AS "SHIPPED_AT",
+        o.delivered_at  AS "DELIVERED_AT"
+        FROM orders o
+        JOIN users  u ON u.user_id = o.user_id
+        ORDER BY o.order_id DESC
+        FETCH FIRST #{limit} ROWS ONLY
+        <!-- 11g 이하라면:
+        SELECT * FROM (
+          SELECT ... FROM orders o JOIN users u ON u.user_id = o.user_id ORDER BY o.order_id DESC
+        ) WHERE ROWNUM <= #{limit}
+        -->
+    </select>
+
+</mapper>

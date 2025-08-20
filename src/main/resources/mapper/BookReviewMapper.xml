@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="mapper.BookReviewMapper">
+
+    <!-- 구매 검증: 해당 유저가 해당 책을 포함한 주문이 있고, 주문 상태가 DELIVERED -->
+    <select id="canReview" resultType="int">
+        SELECT COUNT(*)
+        FROM orders o
+                 JOIN order_items oi ON oi.order_id = o.order_id
+        WHERE o.user_id = #{userId}
+          AND oi.book_id = #{bookId}
+          AND UPPER(TRIM(o.status)) = 'DELIVERED'
+    </select>
+
+    <!-- 중복 리뷰 여부(1개 제한) -->
+    <select id="alreadyReviewed" resultType="int">
+        SELECT COUNT(*)
+        FROM book_reviews
+        WHERE user_id = #{userId}
+          AND book_id = #{bookId}
+    </select>
+
+    <!-- 책별 총 리뷰 수 -->
+    <select id="countByBook" resultType="int">
+        SELECT COUNT(*)
+        FROM book_reviews
+        WHERE book_id = #{bookId}
+    </select>
+
+    <!-- 책별 리뷰 목록 (작성자 이름 포함) -->
+    <select id="findByBook" resultType="map">
+        SELECT
+            r.review_id   AS "REVIEW_ID",
+            r.book_id     AS "BOOK_ID",
+            r.user_id     AS "USER_ID",
+            u.name        AS "USER_NAME",
+            r.content     AS "CONTENT",
+            r.created_at  AS "CREATED_AT"
+        FROM book_reviews r
+                 JOIN users u ON u.user_id = r.user_id
+        WHERE r.book_id = #{bookId}
+        ORDER BY r.review_id DESC
+        OFFSET #{offset} ROWS FETCH NEXT #{size} ROWS ONLY
+    </select>
+
+    <!-- 생성 -->
+    <insert id="insert">
+        INSERT INTO book_reviews (
+            review_id, book_id, user_id, content, created_at
+        ) VALUES (
+                     seq_book_reviews.NEXTVAL, #{bookId}, #{userId}, #{content}, SYSDATE
+                 )
+    </insert>
+
+    <!-- 본인 삭제 -->
+    <delete id="deleteOwn">
+        DELETE FROM book_reviews
+        WHERE review_id = #{reviewId}
+          AND user_id   = #{userId}
+    </delete>
+
+    <!-- 관리자 삭제 -->
+    <delete id="adminDelete">
+        DELETE FROM book_reviews
+        WHERE review_id = #{reviewId}
+    </delete>
+
+</mapper>

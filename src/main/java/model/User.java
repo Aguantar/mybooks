@@ -11,4 +11,5 @@ public class User {
     private String email;
     private String hp;
     private String role;
+    private String status; // "ACTIVE" | "INACTIVE"
 }
