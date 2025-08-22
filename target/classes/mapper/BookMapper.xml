@@ -192,6 +192,22 @@
         WHERE book_id = #{bookId}
     </update>
 
+    <select id="findBestSellers" resultType="map">
+        SELECT
+            b.book_id      AS "bookId",
+            b.title        AS "title",
+            b.author       AS "author",
+            b.cover_image  AS "coverImage",
+            NVL(SUM(oi.quantity), 0) AS "deliveredCount"
+        FROM orders o
+                 JOIN order_items oi ON oi.order_id = o.order_id
+                 JOIN books b       ON b.book_id   = oi.book_id
+        WHERE UPPER(TRIM(o.status)) = 'DELIVERED'
+        GROUP BY b.book_id, b.title, b.author, b.cover_image
+        ORDER BY "deliveredCount" DESC, b.book_id
+            FETCH NEXT #{limit} ROWS ONLY
+    </select>
+
 
 
 </mapper>

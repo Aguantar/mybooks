@@ -38,6 +38,9 @@
         <security:intercept-url pattern="/bookstore/book/**"  access="permitAll"/>
         <security:intercept-url pattern="/cart/**"            access="permitAll"/>
 
+        <security:intercept-url pattern="/api/books"          method="GET" access="permitAll"/>
+        <security:intercept-url pattern="/api/books/**"       method="GET" access="permitAll"/>
+
         <!-- 맨 끝은 인증 필요 -->
         <security:intercept-url pattern="/**" access="authenticated"/>
 

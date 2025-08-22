@@ -1,6 +1,8 @@
 package mapper;
 
 import java.util.List;
+import java.util.Map;
+
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import model.Book;
@@ -28,6 +30,7 @@ public interface BookMapper {
 
     int increaseStock(@org.apache.ibatis.annotations.Param("bookId") Long bookId,
                       @org.apache.ibatis.annotations.Param("qty") int qty);
+    List<Map<String, Object>> findBestSellers(@Param("limit") int limit);
 
 
 
