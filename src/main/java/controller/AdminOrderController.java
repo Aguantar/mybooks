@@ -80,7 +80,7 @@ public class AdminOrderController {
     public String cancel(@PathVariable Long id, RedirectAttributes ra) {
         StringBuilder err = new StringBuilder();
         // 필요에 따라 from을 제한하고 싶다면 "PENDING" 유지, 아니면 null로 바꿔도 됨
-        boolean ok = adminOrderService.changeStatus(id, "PENDING", "CANCELLED", null, null, err);
+        boolean ok = adminOrderService.cancel(id, err);
         ra.addFlashAttribute(ok ? "msg" : "error", ok ? "주문이 취소되었습니다." : err.toString());
         return "redirect:/admin/orders/" + id;
     }

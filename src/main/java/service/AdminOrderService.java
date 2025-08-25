@@ -88,6 +88,31 @@ public class AdminOrderService {
         int updated = adminOrderMapper.adminUpdateStatus(orderId, from, to, courier, trackingNo);
         return updated > 0;
     }
+    // AdminOrderService.java
+    public boolean cancel(Long orderId, StringBuilder err) {
+        // 1) 현재 상태 조회
+        String cur = adminOrderMapper.getStatus(orderId);
+        if (cur == null) {
+            err.append("존재하지 않는 주문입니다.");
+            return false;
+        }
+        String s = cur.trim().toUpperCase();
+
+        // 2) 허용 상태 검사
+        if (!("PENDING".equals(s) || "PAID".equals(s))) {
+            err.append("취소는 PENDING/PAID 상태에서만 가능합니다.");
+            return false;
+        }
+
+        // 3) 취소 업데이트 (from은 null로, DB에서 한 번 더 가드)
+        int updated = adminOrderMapper.adminUpdateStatus(orderId, null, "CANCELLED", null, null);
+        if (updated != 1) {
+            err.append("상태 변경에 실패했습니다. 다른 작업에 의해 상태가 바뀌었을 수 있습니다.");
+            return false;
+        }
+        return true;
+    }
+
 
     /** 에러 메시지 버전 */
     public boolean changeStatus(Long orderId, String from, String to, String courier, String trackingNo, StringBuilder err){

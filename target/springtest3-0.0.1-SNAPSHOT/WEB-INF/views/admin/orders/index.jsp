@@ -127,14 +127,21 @@
                                 <td><span class="badge ${stCls}"><c:out value="${stKo}"/></span></td>
                                 <td><fmt:formatNumber value="${o.totalAmount}" pattern="#,###"/> 원</td>
                                 <td onclick="event.stopPropagation()">
-                                    <c:if test="${stUp ne 'DELIVERED' and stUp ne 'CANCELLED' and stUp ne 'CANCELED'}">
-                                        <form action="${ctx}/admin/orders/${o.orderId}/cancel" method="post" style="display:inline">
-                                            <sec:csrfInput/>
-                                            <button type="submit" class="btn danger"
-                                                    onclick="return confirm('주문 #${o.orderId} 를 취소하시겠습니까?')">취소</button>
-                                        </form>
-                                    </c:if>
+                                    <c:choose>
+                                        <c:when test="${stUp == 'PENDING' or stUp == 'PAID'}">
+                                            <form action="${ctx}/admin/orders/${o.orderId}/cancel" method="post" style="display:inline">
+                                                <sec:csrfInput/>
+                                                <button type="submit" class="btn danger"
+                                                        onclick="return confirm('주문 #${o.orderId} 를 취소하시겠습니까?')">취소</button>
+                                            </form>
+                                        </c:when>
+                                        <c:otherwise>
+                                            <button class="btn danger" disabled title="취소는 PENDING/PAID 상태에서만 가능합니다.">취소</button>
+                                        </c:otherwise>
+                                    </c:choose>
                                 </td>
+
+
                             </tr>
                         </c:forEach>
 

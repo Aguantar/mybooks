@@ -106,6 +106,10 @@
         <if test="from != null and from != ''">
             AND status = #{from}
         </if>
+        <!-- 추가: from이 없고, to=취소이면 DB에서도 PENDING/PAID만 취소 허용 -->
+        <if test="(from == null or from == '') and to == 'CANCELLED'">
+            AND UPPER(TRIM(status)) IN ('PENDING','PAID')
+        </if>
     </update>
 
     <!-- ✅ 대시보드: 누적 매출 (PAID/SHIPPED/DELIVERED 합) -->
@@ -130,6 +134,10 @@
                COUNT(*)            AS "cnt"
         FROM orders
         GROUP BY UPPER(TRIM(status))
+    </select>
+
+    <select id="getStatus" resultType="string">
+        SELECT status FROM orders WHERE order_id = #{orderId}
     </select>
 
 

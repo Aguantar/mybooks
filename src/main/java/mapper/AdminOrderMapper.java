@@ -28,6 +28,8 @@ public interface AdminOrderMapper {
 
     List<OrderItemView> findItems(@Param("orderId") Long orderId);
 
+    String getStatus(@Param("orderId") Long orderId);
+
     int adminUpdateStatus(@Param("orderId") Long orderId,
                           @Param("from") String from,
                           @Param("to") String to,
